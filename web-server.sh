@@ -81,7 +81,7 @@ timestamp() {
 #   Writes message to stdout if verbosity is enabled
 ########################################
 debug() {
-  if [ $VERBOSITY -ge 3 ]; then
+  if [ ${VERBOSITY:-0} -ge 3 ]; then
     echo -e "${ANSI_CYAN}[$(timestamp)] [DEBUG][$$]${ANSI_RESET}" "$@" >&2
   fi
 }
@@ -94,7 +94,7 @@ debug() {
 #   Writes message to stdout if verbosity is enabled
 ########################################
 info() {
-  if [ $VERBOSITY -ge 1 ]; then
+  if [ ${VERBOSITY:-0} -ge 1 ]; then
     echo -e "${ANSI_GREEN}[$(timestamp)] [INFO] [$$]${ANSI_RESET}" "$@" >&2
   fi
 }
@@ -107,7 +107,7 @@ info() {
 #   Writes message to stdout if verbosity is enabled
 ########################################
 warn() {
-  if [ $VERBOSITY -ge 0 ]; then
+  if [ ${VERBOSITY:-0} -ge 0 ]; then
     echo -e "${ANSI_YELLOW}[$(timestamp)] [WARN] [$$]${ANSI_RESET}" "$@" >&2
   fi
 }
@@ -219,6 +219,11 @@ argparse() {
   done
 }
 
+accept() {
+  # Response
+  printf 'HTTP/1.1 200 OK\nContent-Type: text/plain\n\nHello, world!'
+}
+
 ########################################
 # Main function
 # Globals:
@@ -243,9 +248,12 @@ main() {
     fatal "netcat utility not found, please install it"
   fi
 
+  # Export functions and variables for downstream subshells
+  export -f accept
+
+  # Listen for incoming connections
   while true; do
-    # Listen for incoming connections
-    ncat -l "$ADDRESS" "$PORT" -c "printf 'HTTP/1.1 200 OK\nContent-Type: text/plain\n\nHello, world!'"
+    ncat -l "$ADDRESS" "$PORT" -c accept
   done
 }
 
