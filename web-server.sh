@@ -11,8 +11,12 @@
 # -----------
 # This project follows the [Google Shell Style Guide](https://google.github.io/styleguide/shellguide.html).
 
-# Set safety options
-# set -euxo pipefail
+# Set safety options, see Man section on 'SHELL BUILTIN COMMANDS'
+# -e = exit on error
+# -u = treat unset variables as errors
+# -o pipefail = exit if any command in a pipeline fails
+set -eu
+set -o pipefail
 
 # Handle interrupts
 trap 'echo -e "\nSIGINT received, exiting..."; exit 130' SIGINT   # 128 + 2
@@ -178,7 +182,7 @@ argparse() {
       fi
       ;;
     -d=* | --directory=*)
-      DIR="${1#*=}"
+      DIR=$(realpath "${1#*=}")
       ;;
     -d | --directory)
       if [ -n "$2" ]; then
@@ -232,13 +236,16 @@ argparse() {
 main() {
   argparse "$@"
   info "Starting web server on port $PORT at $ADDRESS with directory $DIR"
+  info "View the server at http://$ADDRESS:$PORT"
 
-  warn "This is a warning message"
-  info "This is a info message"
-  debug "This is a debug message"
+  # Check for `ncat` utility
+  if ! command -v ncat &>/dev/null; then
+    fatal "netcat utility not found, please install it"
+  fi
 
   while true; do
-    sleep 1
+    # Listen for incoming connections
+    ncat -l "$ADDRESS" "$PORT" -c "printf 'HTTP/1.1 200 OK\nContent-Type: text/plain\n\nHello, world!'"
   done
 }
 
